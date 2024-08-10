@@ -1,3 +1,4 @@
+// models/Trabajador.js
 const mongoose = require('mongoose');
 
 const TrabajadorSchema = new mongoose.Schema({

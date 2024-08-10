@@ -1,69 +1,45 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const Usuario = require('../models/Usuario');
+const Cliente = require('../models/Usuario');
+const jwt = require('jsonwebtoken');
 
-// Registro de usuario
+// Registro de cliente (si no lo tienes ya)
 router.post('/registrar', async (req, res) => {
-    const { nombreDeUsuario, contrasena, numeroDeCliente } = req.body;
-    try {
-        let usuario = await Usuario.findOne({ nombreDeUsuario });
-        if (usuario) {
-            return res.status(400).json({ msg: 'Usuario ya existe' });
-        }
-        usuario = new Usuario({
-            nombreDeUsuario,
-            contrasena: await bcrypt.hash(contrasena, 10),
-            numeroDeCliente,
-        });
-        await usuario.save();
-        res.status(201).json({ msg: 'Usuario registrado' });
-    } catch (err) {
-        res.status(500).send('Error en el servidor');
+  const { nombreDeUsuario, contrasena } = req.body;
+  try {
+    let cliente = await Cliente.findOne({ nombreDeUsuario });
+    if (cliente) {
+      return res.status(400).json({ msg: 'Cliente ya existe' });
     }
+    cliente = new Cliente({
+      nombreDeUsuario,
+      contrasena: await bcrypt.hash(contrasena, 10),
+    });
+    await cliente.save();
+    res.status(201).json({ msg: 'Cliente registrado' });
+  } catch (err) {
+    res.status(500).send('Error en el servidor');
+  }
 });
 
-// Obtener todos los usuarios
-router.get('/', async (req, res) => {
-    try {
-        const usuarios = await Usuario.find();
-        res.json(usuarios);
-    } catch (err) {
-        res.status(500).send('Error en el servidor');
+// Inicio de sesión de cliente
+router.post('/login', async (req, res) => {
+  const { nombreDeUsuario, contrasena } = req.body;
+  try {
+    const cliente = await Cliente.findOne({ nombreDeUsuario });
+    if (!cliente) {
+      return res.status(400).json({ msg: 'Credenciales incorrectas' });
     }
-});
-
-// Actualizar un usuario
-router.put('/:id', async (req, res) => {
-    const { nombreDeUsuario, contrasena, numeroDeCliente } = req.body;
-    try {
-        let usuario = await Usuario.findById(req.params.id);
-        if (!usuario) {
-            return res.status(404).json({ msg: 'Usuario no encontrado' });
-        }
-        if (nombreDeUsuario) usuario.nombreDeUsuario = nombreDeUsuario;
-        if (contrasena) usuario.contrasena = await bcrypt.hash(contrasena, 10);
-        if (numeroDeCliente) usuario.numeroDeCliente = numeroDeCliente;
-
-        await usuario.save();
-        res.json(usuario);
-    } catch (err) {
-        res.status(500).send('Error en el servidor');
+    const esCoincidente = await bcrypt.compare(contrasena, cliente.contrasena);
+    if (!esCoincidente) {
+      return res.status(400).json({ msg: 'Credenciales incorrectas' });
     }
-});
-
-// Eliminar un usuario
-router.delete('/:id', async (req, res) => {
-    try {
-        const usuario = await Usuario.findById(req.params.id);
-        if (!usuario) {
-            return res.status(404).json({ msg: 'Usuario no encontrado' });
-        }
-        await usuario.remove();
-        res.json({ msg: 'Usuario eliminado' });
-    } catch (err) {
-        res.status(500).send('Error en el servidor');
-    }
+    const token = jwt.sign({ id: cliente._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (err) {
+    res.status(500).send('Error en el servidor');
+  }
 });
 
 module.exports = router;

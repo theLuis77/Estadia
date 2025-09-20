@@ -1,5 +1,6 @@
 // middleware/errorHandler.js
-module.exports = function (err, req, res, next) {
-    console.error(err.message);
-    res.status(500).send('Error en el servidor');
-};
+module.exports = (err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ msg: 'Error en el servidor' });
+  };
+  

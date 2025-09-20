@@ -3,9 +3,9 @@ const router = express.Router();
 const Medicion = require('../models/Medicion');
 const { check, validationResult } = require('express-validator');
 
-// Registro de medición
+// Registrar una nueva medición
 router.post('/registrar', [
-    check('clienteId', 'El ID del cliente es obligatorio').not().isEmpty(),
+    check('numeroDeCliente', 'El ID del cliente es obligatorio').not().isEmpty(),
     check('estatura', 'La estatura es obligatoria').not().isEmpty(),
     check('peso', 'El peso es obligatorio').not().isEmpty(),
     check('porcentajeDeGrasa', 'El porcentaje de grasa es obligatorio').not().isEmpty(),
@@ -16,10 +16,10 @@ router.post('/registrar', [
         return res.status(400).json({ errores: errors.array() });
     }
 
-    const { clienteId, estatura, peso, porcentajeDeGrasa, imc } = req.body;
+    const { numeroDeCliente, estatura, peso, porcentajeDeGrasa, imc } = req.body;
     try {
         let medicion = new Medicion({
-            clienteId,
+            numeroDeCliente,
             estatura,
             peso,
             porcentajeDeGrasa,
@@ -28,51 +28,62 @@ router.post('/registrar', [
         await medicion.save();
         res.status(201).json({ msg: 'Medición registrada', medicion });
     } catch (err) {
-        res.status(500).json({ msg: 'Error en el servidor' });
+        console.error('Error en el servidor:', err.message); // Añadir registro del error
+        res.status(500).json({ msg: 'Error en el servidor', error: err.message });
     }
 });
 
-// Obtener todas las mediciones de un cliente
-router.get('/:clienteId', async (req, res) => {
+// Obtener todas las mediciones
+router.get('/', async (req, res) => {
     try {
-        const mediciones = await Medicion.find({ clienteId: req.params.clienteId });
+        const mediciones = await Medicion.find();
         res.json(mediciones);
     } catch (err) {
-        res.status(500).json({ msg: 'Error en el servidor' });
+        console.error('Error en el servidor:', err.message);
+        res.status(500).json({ msg: 'Error en el servidor', error: err.message });
     }
 });
 
-// Actualizar una medición
-router.put('/:id', async (req, res) => {
-    const { estatura, peso, porcentajeDeGrasa, imc } = req.body;
-    try {
-        let medicion = await Medicion.findById(req.params.id);
-        if (!medicion) {
-            return res.status(404).json({ msg: 'Medición no encontrada' });
-        }
-        if (estatura) medicion.estatura = estatura;
-        if (peso) medicion.peso = peso;
-        if (porcentajeDeGrasa) medicion.porcentajeDeGrasa = porcentajeDeGrasa;
-        if (imc) medicion.imc = imc;
+// // Eliminar una medición por ID
+// router.delete('/eliminar/:id', async (req, res) => {
+//     try {
+//         const medicion = await Medicion.findById(req.params.id);
+//         if (!medicion) {
+//             return res.status(404).json({ msg: 'Medición no encontrada' });
+//         }
 
-        await medicion.save();
-        res.json({ msg: 'Medición actualizada', medicion });
+//         await Medicion.findByIdAndRemove(req.params.id);
+
+//         res.json({ msg: 'Medición eliminada correctamente' });
+//     } catch (err) {
+//         console.error('Error en el servidor:', err.message);
+//         res.status(500).json({ msg: 'Error en el servidor', error: err.message });
+//     }
+// });
+
+
+// Ruta para obtener el progreso de un cliente específico
+router.get('/progreso/:clienteId', async (req, res) => {
+    try {
+        const mediciones = await Medicion.find({ numeroDeCliente: req.params.clienteId });
+        if (!mediciones.length) {
+            return res.status(404).json({ msg: 'No se encontraron mediciones para este cliente' });
+        }
+        res.json(mediciones);
     } catch (err) {
-        res.status(500).json({ msg: 'Error en el servidor' });
+        console.error('Error en el servidor:', err.message);
+        res.status(500).json({ msg: 'Error en el servidor', error: err.message });
     }
 });
 
-// Eliminar una medición
-router.delete('/:id', async (req, res) => {
+// Ruta para obtener el ranking de todos los clientes
+router.get('/ranking', async (req, res) => {
     try {
-        const medicion = await Medicion.findById(req.params.id);
-        if (!medicion) {
-            return res.status(404).json({ msg: 'Medición no encontrada' });
-        }
-        await medicion.remove();
-        res.json({ msg: 'Medición eliminada' });
+        const mediciones = await Medicion.find().sort({ imc: -1 }).limit(10); // Por ejemplo, los 10 mejores IMC
+        res.json(mediciones);
     } catch (err) {
-        res.status(500).json({ msg: 'Error en el servidor' });
+        console.error('Error en el servidor:', err.message);
+        res.status(500).json({ msg: 'Error en el servidor', error: err.message });
     }
 });
 

@@ -1,12 +1,11 @@
-// models/Medicion.js
 const mongoose = require('mongoose');
 
 const MedicionSchema = new mongoose.Schema({
-    clienteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true },
-    estatura: Number,
-    peso: Number,
-    porcentajeDeGrasa: Number,
-    imc: Number,
+    numeroDeCliente: { type: Number, required: true },
+    estatura: { type: Number, required: true },
+    peso: { type: Number, required: true },
+    porcentajeDeGrasa: { type: Number, required: true },
+    imc: { type: Number, required: true },
     fecha: { type: Date, default: Date.now },
 });
 

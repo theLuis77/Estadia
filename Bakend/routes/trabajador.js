@@ -77,7 +77,14 @@ router.get('/', auth, async (req, res, next) => {
 });
 
 // Actualizar un trabajador
-router.put('/:id', auth, async (req, res, next) => {
+router.put('/:id', auth, [
+    check('nombreDeUsuario', 'Nombre de usuario es requerido').optional().not().isEmpty(),
+    check('contrasena', 'Contraseña debe tener mínimo 6 caracteres').optional().isLength({ min: 6 })
+], async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+    }
     const { nombreDeUsuario, contrasena } = req.body;
     try {
         let trabajador = await Trabajador.findById(req.params.id);
